@@ -90,7 +90,7 @@ class Encoder(nn.Module):
 # TODO: delete
 def main():
     encoder = Encoder()
-    pil_img = util.pil_loader('/Users/a12201/Pictures/license.jpg')
+    pil_img = util.pil_loader('image_path')
     img_tensor = util.DEFAULT_TRANSFORM(pil_img).unsqueeze(0)
     encoder(img_tensor)
 
