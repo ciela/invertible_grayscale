@@ -12,7 +12,7 @@ class ResidualBlock(nn.Module):
         self.conv1 = nn.Conv2d(channels, channels, 3)
         self.conv2 = nn.Conv2d(channels, channels, 3)
 
-    def forward(self, x_ini):
+    def forward(self, x_ini: torch.Tensor) -> torch.Tensor:
         x = self.conv1(x_ini)
         x = F.relu(x)
         x = self.conv2(x)
@@ -26,7 +26,7 @@ class ConvTwiceBlock(nn.Module):
         self.conv1 = nn.Conv2d(in_channels, out_channels, 3)
         self.conv2 = nn.Conv2d(out_channels, out_channels, 3)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.conv1(x)
         x = self.conv2(x)
         x = F.relu(x)
@@ -40,8 +40,8 @@ class UpsampleBlock(nn.Module):
         self.conv1 = nn.Conv2d(in_channels, out_channels, 3)
         self.conv2 = nn.Conv2d(out_channels, out_channels, 3)
 
-    def forward(self, x, x_res):
-        # TODO: upsample image?
+    def forward(self, x: torch.Tensor, x_res: torch.Tensor) -> torch.Tensor:
+        x = F.interpolate(x, scale_factor=2, mode='bilinear', align_corners=False)
         x = self.conv1(x)
         x = F.relu(x)
         x = self.conv2(x)
@@ -67,7 +67,7 @@ class Encoder(nn.Module):
         self.residual64_4 = ResidualBlock(64)
         self.conv2 = nn.Conv2d(64, 1, 3)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.conv1(x)
         x = F.relu(x)
         x = self.residual64_1(x)
@@ -90,8 +90,9 @@ class Encoder(nn.Module):
 # TODO: delete
 def main():
     encoder = Encoder()
-    pil_img = util.pil_loader('image_path')
-    img_tensor = util.DEFAULT_TRANSFORM(pil_img).unsqueeze(0)
+    # pil_img = util.pil_loader('image_path')
+    # img_tensor = util.DEFAULT_TRANSFORM(pil_img).unsqueeze(0)
+    img_tensor = torch.randn((3, 256, 256)).view(1, 3, 256, 256)
     encoder(img_tensor)
 
 
