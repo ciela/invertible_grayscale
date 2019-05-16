@@ -1,8 +1,10 @@
 import PIL.Image
+import torch
 import torchvision.transforms as transforms
 
 
 DEFAULT_TRANSFORM = transforms.Compose([
+    transforms.Resize((256, 256)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
@@ -12,6 +14,10 @@ def pil_loader(img_path: str) -> PIL.Image:
     with open(img_path, 'rb') as f:
         img = PIL.Image.open(f)
         return img.convert('RGB')
+
+
+def img_to_tensor(img_path: str) -> torch.Tensor:
+    return DEFAULT_TRANSFORM(pil_loader(img_path))
 
 
 class AverageMeter(object):
