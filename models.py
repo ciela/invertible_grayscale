@@ -52,35 +52,29 @@ class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, 3, padding=1)
-        self.residual64_1 = ResidualBlock(64)
-        self.residual64_2 = ResidualBlock(64)
+        self.residuals64_1 = nn.ModuleList([ResidualBlock(64) for _ in range(2)])
         self.downsample128 = DownsampleBlock(64, 128)
         self.downsample256 = DownsampleBlock(128, 256)
-        self.residual256_1 = ResidualBlock(256)
-        self.residual256_2 = ResidualBlock(256)
-        self.residual256_3 = ResidualBlock(256)
-        self.residual256_4 = ResidualBlock(256)
+        self.residuals256 = nn.ModuleList([ResidualBlock(256) for _ in range(4)])
         self.upsample128 = UpsampleBlock(256, 128)
         self.upsample64 = UpsampleBlock(128, 64)
-        self.residual64_3 = ResidualBlock(64)
-        self.residual64_4 = ResidualBlock(64)
+        self.residuals64_2 = nn.ModuleList([ResidualBlock(64) for _ in range(2)])
         self.conv2 = nn.Conv2d(64, 1, 3, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.conv1(x)
         x = F.relu(x)
-        x = self.residual64_1(x)
-        x_res_A = self.residual64_2(x)  # to upsample64
+        for residual in self.residuals64_1:
+            x = residual(x)
+        x_res_A = x  # to upsample64
         x_res_B = self.downsample128(x_res_A)  # to upsample128
         x = self.downsample256(x_res_B)
-        x = self.residual256_1(x)
-        x = self.residual256_2(x)
-        x = self.residual256_3(x)
-        x = self.residual256_4(x)
+        for residual in self.residuals256:
+            x = residual(x)
         x = self.upsample128(x, x_res_B)  # from downsample128
         x = self.upsample64(x, x_res_A)  # from downsample64
-        x = self.residual64_3(x)
-        x = self.residual64_4(x)
+        for residual in self.residuals64_2:
+            x = residual(x)
         x = self.conv2(x)
         x = torch.tanh(x)
         return x
