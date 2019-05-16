@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import util
-
 
 class ResidualBlock(nn.Module):
 
