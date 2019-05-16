@@ -86,13 +86,37 @@ class Encoder(nn.Module):
         return x
 
 
+class Decoder(nn.Module):
+
+    def __init__(self):
+        super(Decoder, self).__init__()
+        self.conv1 = nn.Conv2d(1, 64, 3, padding=1)
+        self.residuals = nn.ModuleList([ResidualBlock(64) for _ in range(8)])
+        self.conv2 = nn.Conv2d(64, 256, 3, padding=1)
+        self.conv3 = nn.Conv2d(256, 3, 3, padding=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.conv1(x)
+        for residual in self.residuals:
+            x = residual(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        return torch.tanh(x)
+
+
 # TODO: delete
 def main():
     encoder = Encoder()
+    print(encoder)
     # pil_img = util.pil_loader('image_path')
     # img_tensor = util.DEFAULT_TRANSFORM(pil_img).unsqueeze(0)
     img_tensor = torch.randn((3, 256, 256)).view(1, 3, 256, 256)
-    print(encoder(img_tensor))
+    grayscale = encoder(img_tensor)
+    print(grayscale)
+    decoder = Decoder()
+    print(decoder)
+    resotred = decoder(grayscale)
+    print(resotred)
 
 
 if __name__ == "__main__":
