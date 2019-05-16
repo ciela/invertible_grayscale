@@ -1,22 +1,23 @@
+import click
 import torch
 
 from models import Encoder, Decoder
 import util
 
 
-# TODO: delete
-def main():
+@click.command()
+@click.option('-i', '--imgpath', type=str)
+def main(imgpath):
     encoder = Encoder()
     print(encoder)
-    pil_img = util.pil_loader('image_path')
+    pil_img = util.pil_loader(img_path=imgpath)
     img_tensor = util.DEFAULT_TRANSFORM(pil_img).unsqueeze(0)
-    img_tensor = torch.randn((3, 256, 256)).view(1, 3, 256, 256)
     grayscale = encoder(img_tensor)
-    print(grayscale)
+    print(grayscale.size())
     decoder = Decoder()
     print(decoder)
     resotred = decoder(grayscale)
-    print(resotred)
+    print(resotred.size())
 
 
 if __name__ == "__main__":
