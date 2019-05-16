@@ -19,10 +19,10 @@ class ResidualBlock(nn.Module):
         return x_ini + x
 
 
-class ConvTwiceBlock(nn.Module):
+class DownsampleBlock(nn.Module):
 
     def __init__(self, in_channels: int, out_channels: int):
-        super(ConvTwiceBlock, self).__init__()
+        super(DownsampleBlock, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, 3, padding=1)
         self.conv2 = nn.Conv2d(out_channels, out_channels, 3, padding=1)
 
@@ -37,14 +37,13 @@ class UpsampleBlock(nn.Module):
 
     def __init__(self, in_channels: int, out_channels: int):
         super(UpsampleBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, out_channels, 3, padding=1)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, 3, padding=1)
+        self.deconv1 = nn.ConvTranspose2d(in_channels, out_channels, 3, padding=1)
+        self.deconv2 = nn.ConvTranspose2d(out_channels, out_channels, 3, padding=1)
 
     def forward(self, x: torch.Tensor, x_res: torch.Tensor) -> torch.Tensor:
-        x = F.interpolate(x, scale_factor=2, mode='bilinear', align_corners=False)
-        x = self.conv1(x)
+        x = self.deconv1(x)
         x = F.relu(x)
-        x = self.conv2(x)
+        x = self.deconv2(x)
         return x + x_res
 
 
@@ -55,8 +54,8 @@ class Encoder(nn.Module):
         self.conv1 = nn.Conv2d(3, 64, 3, padding=1)
         self.residual64_1 = ResidualBlock(64)
         self.residual64_2 = ResidualBlock(64)
-        self.conv_twice128 = ConvTwiceBlock(64, 128)
-        self.conv_twice256 = ConvTwiceBlock(128, 256)
+        self.downsample128 = DownsampleBlock(64, 128)
+        self.downsample256 = DownsampleBlock(128, 256)
         self.residual256_1 = ResidualBlock(256)
         self.residual256_2 = ResidualBlock(256)
         self.residual256_3 = ResidualBlock(256)
@@ -72,20 +71,18 @@ class Encoder(nn.Module):
         x = F.relu(x)
         x = self.residual64_1(x)
         x_res_A = self.residual64_2(x)  # to upsample64
-        x_res_B = self.conv_twice128(x_res_A)  # to upsample128
-        x = self.conv_twice256(x_res_B)
+        x_res_B = self.downsample128(x_res_A)  # to upsample128
+        x = self.downsample256(x_res_B)
         x = self.residual256_1(x)
         x = self.residual256_2(x)
         x = self.residual256_3(x)
         x = self.residual256_4(x)
-        print(x.size(), x_res_B.size())
-        x = self.upsample128(x, x_res_B)
-        print(x.size(), x_res_A.size())
-        x = self.upsample64(x, x_res_A)
+        x = self.upsample128(x, x_res_B)  # from downsample128
+        x = self.upsample64(x, x_res_A)  # from downsample64
         x = self.residual64_3(x)
         x = self.residual64_4(x)
         x = self.conv2(x)
-        x = F.tanh(x)
+        x = torch.tanh(x)
         return x
 
 
@@ -95,7 +92,7 @@ def main():
     # pil_img = util.pil_loader('image_path')
     # img_tensor = util.DEFAULT_TRANSFORM(pil_img).unsqueeze(0)
     img_tensor = torch.randn((3, 256, 256)).view(1, 3, 256, 256)
-    encoder(img_tensor)
+    print(encoder(img_tensor))
 
 
 if __name__ == "__main__":
