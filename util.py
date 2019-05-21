@@ -6,7 +6,13 @@ import torchvision.transforms as transforms
 DEFAULT_TRANSFORM = transforms.Compose([
     transforms.Resize((256, 256)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+
+GRAYSCALE_TRANSFORM = transforms.Compose([
+    transforms.Resize((256, 256)),
+    transforms.Grayscale(num_output_channels=1),
+    transforms.ToTensor(),
 ])
 
 
@@ -16,8 +22,8 @@ def pil_loader(img_path: str) -> PIL.Image:
         return img.convert('RGB')
 
 
-def img_to_tensor(img_path: str) -> torch.Tensor:
-    return DEFAULT_TRANSFORM(pil_loader(img_path))
+def img_to_tensor(pil_img: PIL.Image, grayscale: bool = False) -> torch.Tensor:
+    return DEFAULT_TRANSFORM(pil_img) if not grayscale else GRAYSCALE_TRANSFORM(pil_img)
 
 
 class AverageMeter(object):
