@@ -1,7 +1,7 @@
 import click
 import torch
 
-from models import Encoder, Decoder
+from models import InvertibleGrayscale
 import util
 from loss import Loss
 
@@ -11,16 +11,12 @@ from loss import Loss
 def main(imgpath):
     gpu = torch.device('cuda:0')
     criterion = Loss(weights=(1, 1, 1), gc_weights=(1, 1, 1))
-    encoder = Encoder().to(gpu)
-    print(list(encoder.parameters()))
+    invertible_grayscale = InvertibleGrayscale().to(gpu)
+    print(invertible_grayscale)
     img_tensor = util.img_to_tensor(img_path=imgpath).unsqueeze(0).to(gpu)
-    grayscale = encoder(img_tensor)
-    print(grayscale.size())
-    decoder = Decoder().to(gpu)
-    print(list(decoder.parameters()))
-    resotred = decoder(grayscale)
-    print(resotred.size())
-    loss = criterion(img_tensor, grayscale, resotred)
+    grayscale, restored = invertible_grayscale(img_tensor)
+    print(grayscale.size(), restored.size())
+    loss = criterion(img_tensor, grayscale, restored)
     print(loss)
     loss.backward()
 
