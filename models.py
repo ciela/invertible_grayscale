@@ -23,7 +23,7 @@ class DownsampleBlock(nn.Module):
 
     def __init__(self, in_channels: int, out_channels: int):
         super(DownsampleBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, out_channels, 3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels, out_channels, 3, padding=1, stride=2)
         self.conv2 = nn.Conv2d(out_channels, out_channels, 3, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -41,6 +41,7 @@ class UpsampleBlock(nn.Module):
         self.deconv2 = nn.ConvTranspose2d(out_channels, out_channels, 3, padding=1)
 
     def forward(self, x: torch.Tensor, x_res: torch.Tensor) -> torch.Tensor:
+        x = F.interpolate(x, scale_factor=2, mode='bilinear', align_corners=False)
         x = self.deconv1(x)
         x = F.relu(x)
         x = self.deconv2(x)
