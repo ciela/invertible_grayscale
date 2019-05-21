@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import PIL.Image
 import torch
 import torchvision.transforms as transforms
@@ -22,8 +24,8 @@ def pil_loader(img_path: str) -> PIL.Image:
         return img.convert('RGB')
 
 
-def img_to_tensor(pil_img: PIL.Image, grayscale: bool = False) -> torch.Tensor:
-    return DEFAULT_TRANSFORM(pil_img) if not grayscale else GRAYSCALE_TRANSFORM(pil_img)
+def img_to_tensor(pil_img: PIL.Image) -> Tuple[torch.Tensor, torch.Tensor]:
+    return DEFAULT_TRANSFORM(pil_img), GRAYSCALE_TRANSFORM(pil_img)
 
 
 class AverageMeter(object):
