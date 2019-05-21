@@ -94,3 +94,16 @@ class Decoder(nn.Module):
         x = self.conv2(x)
         x = self.conv3(x)
         return torch.tanh(x)
+
+
+class InvertibleGrayscale(nn.Module):
+
+    def __init__(self):
+        super(InvertibleGrayscale, self).__init__()
+        self.encoder = Encoder()
+        self.decoder = Decoder()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        grayscale = self.encoder(x)
+        restored = self.decoder(grayscale)
+        return grayscale, restored
