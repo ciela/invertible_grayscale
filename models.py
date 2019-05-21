@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -103,7 +105,7 @@ class InvertibleGrayscale(nn.Module):
         self.encoder = Encoder()
         self.decoder = Decoder()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         grayscale = self.encoder(x)
         restored = self.decoder(grayscale)
         return grayscale, restored
