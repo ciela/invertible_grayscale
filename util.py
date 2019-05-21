@@ -8,6 +8,7 @@ import torchvision.transforms as transforms
 DEFAULT_TRANSFORM = transforms.Compose([
     transforms.Resize((256, 256)),
     transforms.ToTensor(),
+    transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),  # normalize to [-1, 1]
 ])
 
 
@@ -15,6 +16,7 @@ GRAYSCALE_TRANSFORM = transforms.Compose([
     transforms.Resize((256, 256)),
     transforms.Grayscale(num_output_channels=1),
     transforms.ToTensor(),
+    transforms.Normalize(mean=(0.5,), std=(0.5,)),  # grayscale manner
 ])
 
 
