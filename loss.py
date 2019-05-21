@@ -2,6 +2,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from torchvision.models.vgg import vgg19
+
+
+VGG_TRANSFORM = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
+])
 
 
 class Loss(nn.Module):
@@ -14,6 +26,13 @@ class Loss(nn.Module):
         self.w2 = weights2
         self.gcw = gc_weights
         self.theta = gc_lightness_theta
+        self.vgg = vgg19(pretrained=True)
+        self.vgg.eval()
+        # self.conv4_4 = torch.zeros((1, 1, ))
+        def vgg_conv4_4_hook(m: nn.Module, input: torch.Tensor, output: torch.Tensor):
+            print(output)
+            # self.conv4_4.copy_(output)
+        self.vgg.features[25].register_forward_hook(vgg_conv4_4_hook)  # conv4_4
 
     def forward(self, orig_color: torch.Tensor, orig_gray: torch.Tensor,
         grayscale: torch.Tensor, restored: torch.Tensor, stage: int = 1) -> torch.Tensor:
@@ -42,11 +61,14 @@ class Loss(nn.Module):
 
     def gc_contrast(self, orig_gray: torch.Tensor, grayscale: torch.Tensor) -> torch.Tensor:
         # TODO: Use the conv4_4 layer from VGG
+        print(orig_gray.size(), orig_gray.squeeze(0).size())
+        print(VGG_TRANSFORM(orig_gray.squeeze(0)))
+        self.vgg(orig_gray)
         return F.mse_loss(orig_gray, orig_gray)
 
-    def gc_local_structure(self, orig: torch.Tensor, grayscale: torch.Tensor) -> torch.Tensor:
+    def gc_local_structure(self, orig_gray: torch.Tensor, grayscale: torch.Tensor) -> torch.Tensor:
         # TODO: Calculate diffs of Total-Variations
-        return F.mse_loss(orig, orig)
+        return F.mse_loss(orig_gray, orig_gray)
 
     def quantization(self, grayscale: torch.Tensor) -> torch.Tensor:
         grayscale_stack = torch.stack([grayscale for _ in range(256)])
