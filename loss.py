@@ -27,7 +27,7 @@ class Loss(nn.Module):
         self.vgg = vgg19(pretrained=True)
         self.vgg_conv4_4_feat = torch.zeros((1, 512, 28, 28))
         def vgg_conv4_4_hook(m: nn.Module, input: torch.Tensor, output: torch.Tensor):
-            self.vgg_conv4_4_feat.copy_(output.data)
+            self.vgg_conv4_4_feat.copy_(output)
         self.vgg.features[25].register_forward_hook(vgg_conv4_4_hook)  # conv4_4
         self.vgg.eval()
 
@@ -62,8 +62,8 @@ class Loss(nn.Module):
         with torch.no_grad():
             self.vgg(VGG_TRANSFORM(orig_gray.squeeze(0)).unsqueeze(0))
             orig_gray = self.vgg_conv4_4_feat.clone()
-            self.vgg(VGG_TRANSFORM(grayscale.squeeze(0)).unsqueeze(0))
-            grayscale = self.vgg_conv4_4_feat.clone()
+        self.vgg(VGG_TRANSFORM(grayscale.squeeze(0)).unsqueeze(0))
+        grayscale = self.vgg_conv4_4_feat.clone()
         return F.l1_loss(orig_gray, grayscale)
 
     def gc_local_structure(self, orig_gray: torch.Tensor, grayscale: torch.Tensor) -> torch.Tensor:
