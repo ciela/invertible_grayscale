@@ -31,48 +31,48 @@ class Loss(nn.Module):
         self.vgg.features[25].register_forward_hook(vgg_conv4_4_hook)  # conv4_4
         self.vgg.eval()
 
-    def forward(self, orig_color: torch.Tensor, orig_gray: torch.Tensor,
-        grayscale: torch.Tensor, restored: torch.Tensor, stage: int = 1) -> torch.Tensor:
+    def forward(self, X_orig_color: torch.Tensor, T_orig_gray: torch.Tensor,
+        Y_grayscale: torch.Tensor, Y_restored: torch.Tensor, stage: int = 1) -> torch.Tensor:
         weights = self.w1 if stage == 1 else self.w2
-        invertibility = self.invertibility(orig_color, restored)
-        grayscale_conformity = weights[0] * self.grayscale_conformity(orig_gray, grayscale)
-        quantization = weights[1] * self.quantization(grayscale)
+        invertibility = self.invertibility(X_orig_color, Y_restored)
+        grayscale_conformity = weights[0] * self.grayscale_conformity(T_orig_gray, Y_grayscale)
+        quantization = weights[1] * self.quantization(Y_grayscale)
         full_loss = invertibility + grayscale_conformity + quantization
         print('Full Loss: ', invertibility, grayscale_conformity, quantization)
         return full_loss
 
-    def invertibility(self, orig_color: torch.Tensor, restored: torch.Tensor) -> torch.Tensor:
-        return F.mse_loss(orig_color, restored)
+    def invertibility(self, X_orig_color: torch.Tensor, Y_restored: torch.Tensor) -> torch.Tensor:
+        return F.mse_loss(X_orig_color, Y_restored)
 
-    def grayscale_conformity(self, orig_gray: torch.Tensor, grayscale: torch.Tensor) -> torch.Tensor:
-        lightness = self.gc_lightness(orig_gray, grayscale)
-        contrast = self.gcw[0] * self.gc_contrast(orig_gray, grayscale)
-        local_structure = self.gcw[1] * self.gc_local_structure(orig_gray, grayscale)
+    def grayscale_conformity(self, T_orig_gray: torch.Tensor, Y_grayscale: torch.Tensor) -> torch.Tensor:
+        lightness = self.gc_lightness(T_orig_gray, Y_grayscale)
+        contrast = self.gcw[0] * self.gc_contrast(T_orig_gray, Y_grayscale)
+        local_structure = self.gcw[1] * self.gc_local_structure(T_orig_gray, Y_grayscale)
         print('GC Loss: ', lightness, contrast, local_structure)
         return lightness + contrast + local_structure
 
-    def gc_lightness(self, orig_gray: torch.Tensor, grayscale: torch.Tensor) -> torch.Tensor:
+    def gc_lightness(self, T_orig_gray: torch.Tensor, Y_grayscale: torch.Tensor) -> torch.Tensor:
         # abs range is [0, 2]
         return torch.mean(
             torch.max(
-                torch.abs(grayscale - orig_gray) - self.theta / 127,
-                torch.zeros_like(orig_gray)))
+                torch.abs(Y_grayscale - T_orig_gray) - self.theta / 127,
+                torch.zeros_like(T_orig_gray)))
 
-    def gc_contrast(self, orig_gray: torch.Tensor, grayscale: torch.Tensor) -> torch.Tensor:
+    def gc_contrast(self, T_orig_gray: torch.Tensor, Y_grayscale: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            self.vgg(VGG_TRANSFORM(orig_gray.squeeze(0)).unsqueeze(0))
-            orig_gray = self.vgg_conv4_4_feat.clone()
-        self.vgg(VGG_TRANSFORM(grayscale.squeeze(0)).unsqueeze(0))
-        grayscale = self.vgg_conv4_4_feat.clone()
-        return F.l1_loss(orig_gray, grayscale)
+            self.vgg(VGG_TRANSFORM(T_orig_gray.squeeze(0)).unsqueeze(0))
+            T_orig_gray = self.vgg_conv4_4_feat.clone()
+        self.vgg(VGG_TRANSFORM(Y_grayscale.squeeze(0)).unsqueeze(0))
+        Y_grayscale = self.vgg_conv4_4_feat.clone()
+        return F.l1_loss(T_orig_gray, Y_grayscale)
 
-    def gc_local_structure(self, orig_gray: torch.Tensor, grayscale: torch.Tensor) -> torch.Tensor:
+    def gc_local_structure(self, T_orig_gray: torch.Tensor, Y_grayscale: torch.Tensor) -> torch.Tensor:
         # TODO: Calculate diffs of Total-Variations
-        return F.mse_loss(orig_gray, orig_gray)
+        return F.mse_loss(T_orig_gray, T_orig_gray)
 
-    def quantization(self, grayscale: torch.Tensor) -> torch.Tensor:
-        grayscale_stack = torch.stack([grayscale for _ in range(256)])
-        M = torch.zeros_like(grayscale)
+    def quantization(self, Y_grayscale: torch.Tensor) -> torch.Tensor:
+        grayscale_stack = torch.stack([Y_grayscale for _ in range(256)])
+        M = torch.zeros_like(Y_grayscale)
         M_stack = torch.stack([M.new_full(M.size(), fill_value=d) for d in range(256)])
         M_stack = (M_stack / 127.5) - 1
         return torch.mean(
