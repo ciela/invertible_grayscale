@@ -5,7 +5,7 @@ import torch
 import torchvision.transforms as transforms
 
 
-ImageTensors = Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+ImageTensors = Tuple[torch.Tensor, torch.Tensor]
 
 
 DEFAULT_TRANSFORM = transforms.Compose([
@@ -23,15 +23,6 @@ GRAYSCALE_TRANSFORM = transforms.Compose([
 ])
 
 
-VGG_TRANSFORM = transforms.Compose([
-    transforms.Resize((256, 256)),
-    transforms.CenterCrop(224),
-    transforms.Grayscale(num_output_channels=3),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),  # model-zoo manner
-])
-
-
 def pil_loader(img_path: str) -> PIL.Image:
     with open(img_path, 'rb') as f:
         img = PIL.Image.open(f)
@@ -39,7 +30,7 @@ def pil_loader(img_path: str) -> PIL.Image:
 
 
 def img_to_tensor(pil_img: PIL.Image) -> ImageTensors:
-    return DEFAULT_TRANSFORM(pil_img), GRAYSCALE_TRANSFORM(pil_img), VGG_TRANSFORM(pil_img)
+    return DEFAULT_TRANSFORM(pil_img), GRAYSCALE_TRANSFORM(pil_img)
 
 
 class AverageMeter(object):
