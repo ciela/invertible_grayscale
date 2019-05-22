@@ -8,11 +8,9 @@ from torchvision.models.vgg import vgg19
 VGG_TRANSFORM = transforms.Compose([
     transforms.ToPILImage(),
     transforms.CenterCrop(224),
+    transforms.Grayscale(num_output_channels=3),
     transforms.ToTensor(),
-    transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225]
-    )
+    transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),  # model-zoo manner
 ])
 
 
@@ -27,12 +25,11 @@ class Loss(nn.Module):
         self.gcw = gc_weights
         self.theta = gc_lightness_theta
         self.vgg = vgg19(pretrained=True)
-        self.vgg.eval()
-        # self.conv4_4 = torch.zeros((1, 1, ))
+        self.vgg_conv4_4_feat = torch.zeros((1, 512, 28, 28))
         def vgg_conv4_4_hook(m: nn.Module, input: torch.Tensor, output: torch.Tensor):
-            print(output)
-            # self.conv4_4.copy_(output)
+            self.vgg_conv4_4_feat.copy_(output.data)
         self.vgg.features[25].register_forward_hook(vgg_conv4_4_hook)  # conv4_4
+        self.vgg.eval()
 
     def forward(self, orig_color: torch.Tensor, orig_gray: torch.Tensor,
         grayscale: torch.Tensor, restored: torch.Tensor, stage: int = 1) -> torch.Tensor:
@@ -41,6 +38,7 @@ class Loss(nn.Module):
         grayscale_conformity = weights[0] * self.grayscale_conformity(orig_gray, grayscale)
         quantization = weights[1] * self.quantization(grayscale)
         full_loss = invertibility + grayscale_conformity + quantization
+        print('Full Loss: ', invertibility, grayscale_conformity, quantization)
         return full_loss
 
     def invertibility(self, orig_color: torch.Tensor, restored: torch.Tensor) -> torch.Tensor:
@@ -50,6 +48,7 @@ class Loss(nn.Module):
         lightness = self.gc_lightness(orig_gray, grayscale)
         contrast = self.gcw[0] * self.gc_contrast(orig_gray, grayscale)
         local_structure = self.gcw[1] * self.gc_local_structure(orig_gray, grayscale)
+        print('GC Loss: ', lightness, contrast, local_structure)
         return lightness + contrast + local_structure
 
     def gc_lightness(self, orig_gray: torch.Tensor, grayscale: torch.Tensor) -> torch.Tensor:
@@ -60,11 +59,12 @@ class Loss(nn.Module):
                 torch.zeros_like(orig_gray)))
 
     def gc_contrast(self, orig_gray: torch.Tensor, grayscale: torch.Tensor) -> torch.Tensor:
-        # TODO: Use the conv4_4 layer from VGG
-        print(orig_gray.size(), orig_gray.squeeze(0).size())
-        print(VGG_TRANSFORM(orig_gray.squeeze(0)))
-        self.vgg(orig_gray)
-        return F.mse_loss(orig_gray, orig_gray)
+        with torch.no_grad():
+            self.vgg(VGG_TRANSFORM(orig_gray.squeeze(0)).unsqueeze(0))
+            orig_gray = self.vgg_conv4_4_feat.clone()
+            self.vgg(VGG_TRANSFORM(grayscale.squeeze(0)).unsqueeze(0))
+            grayscale = self.vgg_conv4_4_feat.clone()
+        return F.l1_loss(orig_gray, grayscale)
 
     def gc_local_structure(self, orig_gray: torch.Tensor, grayscale: torch.Tensor) -> torch.Tensor:
         # TODO: Calculate diffs of Total-Variations
