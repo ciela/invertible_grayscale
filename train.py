@@ -10,7 +10,7 @@ from loss import Loss
 @click.option('-i', '--imgpath', type=str)
 def main(imgpath):
     gpu = torch.device('cuda:0')
-    criterion = Loss(weights1=(1, 1, 1), weights2=(1, 1, 1), gc_weights=(1, 1, 1))
+    criterion = Loss()
     invertible_grayscale = InvertibleGrayscale()
     pil_img = util.pil_loader(img_path=imgpath)
     X_color, T_gray = util.img_to_tensor(pil_img=pil_img)
