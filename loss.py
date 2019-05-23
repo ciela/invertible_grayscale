@@ -26,8 +26,8 @@ class Loss(nn.Module):
         self.theta = gc_lightness_theta
         self.vgg = vgg19(pretrained=True)
         self.vgg_conv4_4_feat = torch.zeros((1, 512, 28, 28))
-        def vgg_conv4_4_hook(m: nn.Module, input: torch.Tensor, output: torch.Tensor):
-            self.vgg_conv4_4_feat.copy_(output)
+        def vgg_conv4_4_hook(m: nn.Module, i: tuple, o: torch.Tensor):
+            self.vgg_conv4_4_feat.copy_(o)  # copies with grad_fn
         self.vgg.features[25].register_forward_hook(vgg_conv4_4_hook)  # conv4_4
         self.vgg.eval()
 
