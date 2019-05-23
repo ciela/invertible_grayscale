@@ -66,9 +66,12 @@ class Loss(nn.Module):
         Y_grayscale = self.vgg_conv4_4_feat.clone()
         return F.l1_loss(T_orig_gray, Y_grayscale)
 
-    def gc_local_structure(self, T_orig_gray: torch.Tensor, Y_grayscale: torch.Tensor) -> torch.Tensor:
-        # TODO: Calculate diffs of Total-Variations
-        return F.mse_loss(T_orig_gray, T_orig_gray)
+    def gc_local_structure(self, T: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:
+        T_tv = torch.sum(torch.abs(T[:, :, :-1, :] - T[:, :, 1:, :]))\
+            + torch.sum(torch.abs(T[:, :, :, :-1] - T[:, :, :, 1:]))
+        Y_tv = torch.sum(torch.abs(Y[:, :, :-1, :] - Y[:, :, 1:, :]))\
+            + torch.sum(torch.abs(Y[:, :, :, :-1] - Y[:, :, :, 1:]))
+        return F.l1_loss(T_tv, Y_tv)
 
     def quantization(self, Y_grayscale: torch.Tensor) -> torch.Tensor:
         grayscale_stack = torch.cat([Y_grayscale for _ in range(256)])
