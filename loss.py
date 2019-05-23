@@ -71,11 +71,12 @@ class Loss(nn.Module):
         return F.mse_loss(T_orig_gray, T_orig_gray)
 
     def quantization(self, Y_grayscale: torch.Tensor) -> torch.Tensor:
-        grayscale_stack = torch.stack([Y_grayscale for _ in range(256)])
+        grayscale_stack = torch.cat([Y_grayscale for _ in range(256)])
         M = torch.zeros_like(Y_grayscale)
-        M_stack = torch.stack([M.new_full(M.size(), fill_value=d) for d in range(256)])
+        M_stack = torch.cat([M.new_full(M.size(), fill_value=d) for d in range(256)])
         M_stack = (M_stack / 127.5) - 1
-        return torch.mean(
+        absmin = torch.min(
             torch.min(
-                torch.min(
-                    torch.abs(grayscale_stack - M_stack), dim=3).values, dim=2).values)
+                torch.abs(grayscale_stack - M_stack), dim=3).values, dim=2).values
+        result = torch.mean(absmin)
+        return result
