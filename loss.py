@@ -24,17 +24,13 @@ class Loss(nn.Module):
         self.w2 = weights2
         self.gcw = gc_weights
         self.theta = gc_lightness_theta
-        self.vgg = vgg19(pretrained=True)
-        self.vgg_conv4_4_feat = torch.zeros((1, 512, 28, 28))
-        def vgg_conv4_4_hook(m: nn.Module, i: tuple, o: torch.Tensor):
-            self.vgg_conv4_4_feat.copy_(o)  # copies with grad_fn
-        self.vgg.features[25].register_forward_hook(vgg_conv4_4_hook)  # conv4_4
-        self.vgg.eval()
+        self.vgg_conv44 = vgg19(pretrained=True).features[:27]  # conv4_4 + relu
+        self.vgg_conv44.eval()
 
     def forward(self, X_orig_color: torch.Tensor, T_orig_gray: torch.Tensor,
         Y_grayscale: torch.Tensor, Y_restored: torch.Tensor, stage: int = 1) -> torch.Tensor:
         weights = self.w1 if stage == 1 else self.w2
-        invertibility = self.invertibility(X_orig_color, Y_restored)
+        invertibility = 3 * self.invertibility(X_orig_color, Y_restored)
         grayscale_conformity = weights[0] * self.grayscale_conformity(T_orig_gray, Y_grayscale)
         quantization = weights[1] * self.quantization(Y_grayscale)
         full_loss = invertibility + grayscale_conformity + quantization
@@ -60,10 +56,8 @@ class Loss(nn.Module):
 
     def gc_contrast(self, T_orig_gray: torch.Tensor, Y_grayscale: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            self.vgg(VGG_TRANSFORM(T_orig_gray.squeeze(0)).unsqueeze(0))
-            T_orig_gray = self.vgg_conv4_4_feat.clone()
-        self.vgg(VGG_TRANSFORM(Y_grayscale.squeeze(0)).unsqueeze(0))
-        Y_grayscale = self.vgg_conv4_4_feat.clone()
+            T_orig_gray = self.vgg_conv44(VGG_TRANSFORM(T_orig_gray.squeeze(0)).unsqueeze(0))
+        Y_grayscale = self.vgg_conv44(VGG_TRANSFORM(Y_grayscale.squeeze(0)).unsqueeze(0))
         return F.l1_loss(T_orig_gray, Y_grayscale)
 
     def gc_local_structure(self, T: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:
@@ -71,7 +65,7 @@ class Loss(nn.Module):
             + torch.sum(torch.abs(T[:, :, :, :-1] - T[:, :, :, 1:]))
         Y_tv = torch.sum(torch.abs(Y[:, :, :-1, :] - Y[:, :, 1:, :]))\
             + torch.sum(torch.abs(Y[:, :, :, :-1] - Y[:, :, :, 1:]))
-        return F.l1_loss(T_tv, Y_tv)
+        return F.l1_loss(T_tv / 256 ** 2, Y_tv / 256 ** 2)
 
     def quantization(self, Y_grayscale: torch.Tensor) -> torch.Tensor:
         grayscale_stack = torch.cat([Y_grayscale for _ in range(256)])
