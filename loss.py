@@ -31,9 +31,13 @@ class Loss(nn.Module):
         weights = self.w1 if stage == 1 else self.w2
         invertibility = 3 * self.invertibility(X_orig_color, Y_restored)
         grayscale_conformity = weights[0] * self.grayscale_conformity(T_orig_gray, Y_grayscale)
-        quantization = weights[1] * self.quantization(Y_grayscale)
-        full_loss = invertibility + grayscale_conformity + quantization
-        print('Full Loss: ', invertibility, grayscale_conformity, quantization)
+        if stage == 1:
+            full_loss = invertibility + grayscale_conformity
+            print(f'Losses: I: {invertibility}, GC: {grayscale_conformity}')
+        else:
+            quantization = weights[1] * self.quantization(Y_grayscale)
+            full_loss = invertibility + grayscale_conformity + quantization
+            print(f'Losses: I: {invertibility}, GC: {grayscale_conformity}, Q: {quantization}')
         return full_loss
 
     def invertibility(self, X_orig_color: torch.Tensor, Y_restored: torch.Tensor) -> torch.Tensor:
@@ -43,7 +47,6 @@ class Loss(nn.Module):
         lightness = self.gc_lightness(T_orig_gray, Y_grayscale)
         contrast = self.gcw[0] * self.gc_contrast(T_orig_gray, Y_grayscale)
         local_structure = self.gcw[1] * self.gc_local_structure(T_orig_gray, Y_grayscale)
-        print('GC Loss: ', lightness, contrast, local_structure)
         return lightness + contrast + local_structure
 
     def gc_lightness(self, T_orig_gray: torch.Tensor, Y_grayscale: torch.Tensor) -> torch.Tensor:
