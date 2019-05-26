@@ -1,6 +1,7 @@
 import click
 import torch
 from torch.optim.adam import Adam
+from torch.optim.lr_scheduler import LambdaLR
 
 from models import InvertibleGrayscale
 import util
@@ -16,7 +17,8 @@ def main(imgpath, cuda_no):
         print(f'Use GPU No. {cuda_no}.')
         gpu = torch.device('cuda', cuda_no)
     ig = InvertibleGrayscale()
-    optim = Adam(ig.parameters(), lr=0.0002)
+    optim = Adam(ig.parameters(), lr=0.0002)  # to lr 0.000002
+    scheduler = LambdaLR(optim, lr_lambda=lambda ep: 0.9623506263980885 ** ep)  # 0.01 ** (1/120)
     criterion = Loss()
     if use_gpu:
         ig = ig.to(gpu)
@@ -34,9 +36,10 @@ def main(imgpath, cuda_no):
             loss = criterion(X_color, T_gray, Y_grayscale, Y_restored, stage=1)
         else:
             loss = criterion(X_color, T_gray, Y_grayscale, Y_restored, stage=2)
-        print(loss)
         loss.backward()
         optim.step()
+        scheduler.step()
+    print(f'Loss: {loss}, LR: {scheduler.get_lr()}, Base LR: {scheduler.base_lrs}')
     print('Finished training!')
 
 
