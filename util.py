@@ -33,6 +33,13 @@ def img_to_tensor(pil_img: PIL.Image) -> ImageTensors:
     return DEFAULT_TRANSFORM(pil_img), GRAYSCALE_TRANSFORM(pil_img)
 
 
+def tensor_to_img(gray: torch.Tensor, restored: torch.Tensor) -> Tuple:
+    gray, restored = (gray + 1) / 2, (restored + 2) / 2
+    gray = transforms.ToPILImage()(gray)
+    restored = transforms.ToPILImage(mode='RGB')(restored)
+    return gray, restored
+
+
 class AverageMeter(object):
     """ Computes and stores the average and current value """
 
