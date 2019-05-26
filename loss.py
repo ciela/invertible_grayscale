@@ -5,13 +5,12 @@ import torchvision.transforms as transforms
 from torchvision.models.vgg import vgg19
 
 
-VGG_TRANSFORM = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.CenterCrop(224),
-    transforms.Grayscale(num_output_channels=3),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),  # model-zoo manner
-])
+def to_vgg_ready(t: torch.Tensor) -> torch.Tensor:
+    t = t.squeeze(0)  # (1, 1, :, :) -> (1, :, :)
+    t = torch.cat([t for _ in range(3)])  # (1, :, :) -> (3, :, :)
+    t = t.unsqueeze(0)  # (3, :, :) -> (1, 3, :, :)
+    t = t + 1 / 2  # tentative normalization for model-zoo
+    return t
 
 
 class Loss(nn.Module):
@@ -56,8 +55,8 @@ class Loss(nn.Module):
 
     def gc_contrast(self, T_orig_gray: torch.Tensor, Y_grayscale: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            T_orig_gray = self.vgg_conv44(VGG_TRANSFORM(T_orig_gray.squeeze(0)).unsqueeze(0))
-        Y_grayscale = self.vgg_conv44(VGG_TRANSFORM(Y_grayscale.squeeze(0)).unsqueeze(0))
+            T_orig_gray = self.vgg_conv44(to_vgg_ready(T_orig_gray))
+        Y_grayscale = self.vgg_conv44(to_vgg_ready(Y_grayscale))
         return F.l1_loss(T_orig_gray, Y_grayscale)
 
     def gc_local_structure(self, T: torch.Tensor, Y: torch.Tensor) -> torch.Tensor:
