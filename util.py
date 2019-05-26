@@ -65,3 +65,17 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+
+
+def save_checkpoint(state: dict, is_best: bool, datestr: str):
+    """Save checkpoint state data into file.
+    Arguments:
+        state {dict} -- [description]
+        is_best {bool} -- [description]
+        datestr {str} -- [description]
+    """
+    filename = 'igray_checkpoint_' + datestr + '.pth.tar'
+    torch.save(state, filename)
+    if is_best:
+        shutil.copyfile(filename, 'iqcrnet_best_' +
+                        datestr + '.pth.tar')
