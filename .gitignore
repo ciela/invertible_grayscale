@@ -152,4 +152,8 @@ pip-selfcheck.json
 # End of https://www.gitignore.io/api/python,virtualenv,visualstudiocode
 ig_env/
 img/
-.DS_ignore
+.DS_store
+train_results/*
+!train_results/.gitkeep
+test_results/*
+!test_results/.gitkeep
