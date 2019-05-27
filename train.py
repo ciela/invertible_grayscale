@@ -51,8 +51,8 @@ def main(datadir, cuda_no):
         print('Saving invertible grayscale and restored color image...')
         gray, color = util.tensor_to_img(
             Y_grayscale.squeeze(0).cpu(), Y_restored.squeeze(0).cpu())
-        gray.save(f'gray_ep{ep:03}.png')
-        color.save(f'color_ep{ep:03}.png')
+        gray.save(f'train_results/gray_ep{ep:03}.png')
+        color.save(f'train_results/color_ep{ep:03}.png')
         print('Saving trained model...')
         state = {
             'epoch': ep + 1,
