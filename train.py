@@ -8,10 +8,10 @@ import torch.utils.data as data
 import logzero
 from logzero import logger as log
 
-from dataset import Dataset
-from models import InvertibleGrayscale
-import util
-from loss import Loss
+from igray.dataset import Dataset
+from igray.model import InvertibleGrayscale
+import igray.util as util
+from igray.loss import Loss
 
 
 @click.command()
