@@ -5,6 +5,9 @@ import torch
 from torch.optim.adam import Adam
 from torch.optim.lr_scheduler import LambdaLR
 import torch.utils.data as data
+import logzero
+from logzero import logger as log
+logzero.logfile('igray_train.log', maxBytes=10e6, backupCount=3)
 
 from dataset import Dataset
 from models import InvertibleGrayscale
@@ -17,7 +20,7 @@ from loss import Loss
 @click.option('-c', '--cuda_no', type=int, default=-1)
 def main(datadir, cuda_no):
     datestr = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')
-    print(f'Starting training of InvertibleGrayscale, {datestr}')
+    log.info(f'Starting training of InvertibleGrayscale, {datestr}')
 
     # ready for training
     ig_net = InvertibleGrayscale()
@@ -26,7 +29,7 @@ def main(datadir, cuda_no):
     criterion = Loss()
     use_gpu = torch.cuda.is_available() and cuda_no >= 0
     if use_gpu:
-        print(f'Use GPU No.{cuda_no}')
+        log.info(f'Use GPU No.{cuda_no}')
         gpu = torch.device('cuda', cuda_no)
         ig_net = ig_net.to(gpu)
         criterion = criterion.to(gpu)
@@ -47,8 +50,8 @@ def main(datadir, cuda_no):
             optim.step()
             losses.update(loss)
         scheduler.step()
-        print(f'EP{ep:03}STG{1 if ep < 90 else 2}: LossAvg: {losses.avg}')
-        print('Saving invertible grayscale and restored color image...')
+        log.info(f'EP{ep:03}STG{1 if ep < 90 else 2}: LossAvg: {losses.avg}')
+        log.info('Saving invertible grayscale and restored color image...')
         if use_gpu:
             gray, color = util.tensor_to_img(
                 Y_grayscale.squeeze(0).cpu(), Y_restored.squeeze(0).cpu())
@@ -57,7 +60,7 @@ def main(datadir, cuda_no):
                 Y_grayscale.squeeze(0), Y_restored.squeeze(0))
         gray.save(f'train_results/gray_ep{ep:03}.png')
         color.save(f'train_results/color_ep{ep:03}.png')
-        print('Saving trained model...')
+        log.info('Saving trained model...')
         state = {
             'epoch': ep + 1,
             'use_gpu': use_gpu,
@@ -65,7 +68,7 @@ def main(datadir, cuda_no):
             'optimizer': optim.state_dict(),
         }
         util.save_checkpoint(state, False, datestr)
-    print('Finished training!')
+    log.info('Finished training!')
 
 
 if __name__ == "__main__":
