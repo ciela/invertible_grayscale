@@ -42,7 +42,7 @@ class Dataset(data.Dataset):
     def __len__(self) -> int:
         return len(self.paths)
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, index: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
         item = self.paths[index]
         pil_img = pil_loader(item)
-        return DEFAULT_TRANSFORM(pil_img), GRAYSCALE_TRANSFORM(pil_img)
+        return item, DEFAULT_TRANSFORM(pil_img), GRAYSCALE_TRANSFORM(pil_img)
