@@ -7,7 +7,6 @@ from torch.optim.lr_scheduler import LambdaLR
 import torch.utils.data as data
 import logzero
 from logzero import logger as log
-logzero.logfile('igray_train.log', maxBytes=10e6, backupCount=3)
 
 from dataset import Dataset
 from models import InvertibleGrayscale
@@ -20,6 +19,7 @@ from loss import Loss
 @click.option('-c', '--cuda_no', type=int, default=-1)
 def main(datadir, cuda_no):
     datestr = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')
+    logzero.logfile(f'igray_train_{datestr}.log', maxBytes=10e6, backupCount=3)
     log.info(f'Starting training of InvertibleGrayscale, {datestr}')
 
     # ready for training
