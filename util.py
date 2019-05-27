@@ -6,11 +6,12 @@ import torch
 import torchvision.transforms as transforms
 
 
-def tensor_to_img(gray: torch.Tensor, restored: torch.Tensor) -> Tuple:
-    gray, restored = (gray + 1) / 2, (restored + 1) / 2
+def tensor_to_img(orig: torch.Tensor, gray: torch.Tensor, restored: torch.Tensor) -> Tuple:
+    orig, gray, restored = (orig + 1) / 2, (gray + 1) / 2, (restored + 1) / 2
+    orig = transforms.ToPILImage(mode='RGB')(orig)
     gray = transforms.ToPILImage()(gray)
     restored = transforms.ToPILImage(mode='RGB')(restored)
-    return gray, restored
+    return orig, gray, restored
 
 
 class AverageMeter(object):

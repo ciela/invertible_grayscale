@@ -157,3 +157,4 @@ train_results/*
 !train_results/.gitkeep
 test_results/*
 !test_results/.gitkeep
+*.pth.tar

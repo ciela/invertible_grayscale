@@ -37,6 +37,7 @@ def main(datadir, cuda_no):
     # start training
     data_loader = data.DataLoader(Dataset(datadir), shuffle=True, pin_memory=True)
     for ep in range(120):
+        # calculate losses and perform backprop
         losses = util.AverageMeter()
         for p, X_color, T_gray in data_loader:
             if use_gpu:
@@ -51,13 +52,20 @@ def main(datadir, cuda_no):
             losses.update(loss)
         scheduler.step()
         log.info(f'EP{ep:03}STG{1 if ep < 90 else 2}: LossAvg: {losses.avg}')
-        log.info('Saving invertible grayscale and restored color image...')
+
+        # save current information
+        log.info(f'Saving invertible grayscale and restored color image of {str(p[0])}...')
         if use_gpu:
-            gray, color = util.tensor_to_img(
-                Y_grayscale.squeeze(0).cpu(), Y_restored.squeeze(0).cpu())
+            orig, gray, color = util.tensor_to_img(
+                X_color.squeeze(0).cpu(),
+                Y_grayscale.squeeze(0).cpu(),
+                Y_restored.squeeze(0).cpu())
         else:
-            gray, color = util.tensor_to_img(
-                Y_grayscale.squeeze(0), Y_restored.squeeze(0))
+            orig, gray, color = util.tensor_to_img(
+                X_color.squeeze(0),
+                Y_grayscale.squeeze(0),
+                Y_restored.squeeze(0))
+        orig.save(f'train_results/orig_ep{ep:03}.png')
         gray.save(f'train_results/gray_ep{ep:03}.png')
         color.save(f'train_results/color_ep{ep:03}.png')
         log.info('Saving trained model...')
