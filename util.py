@@ -5,34 +5,6 @@ import torch
 import torchvision.transforms as transforms
 
 
-ImageTensors = Tuple[torch.Tensor, torch.Tensor]
-
-
-DEFAULT_TRANSFORM = transforms.Compose([
-    transforms.Resize((256, 256)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),  # normalize to [-1, 1]
-])
-
-
-GRAYSCALE_TRANSFORM = transforms.Compose([
-    transforms.Resize((256, 256)),
-    transforms.Grayscale(num_output_channels=1),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=(0.5,), std=(0.5,)),  # grayscale manner
-])
-
-
-def pil_loader(img_path: str) -> PIL.Image:
-    with open(img_path, 'rb') as f:
-        img = PIL.Image.open(f)
-        return img.convert('RGB')
-
-
-def img_to_tensor(pil_img: PIL.Image) -> ImageTensors:
-    return DEFAULT_TRANSFORM(pil_img), GRAYSCALE_TRANSFORM(pil_img)
-
-
 def tensor_to_img(gray: torch.Tensor, restored: torch.Tensor) -> Tuple:
     gray, restored = (gray + 1) / 2, (restored + 1) / 2
     gray = transforms.ToPILImage()(gray)
