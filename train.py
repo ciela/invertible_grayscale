@@ -49,8 +49,12 @@ def main(datadir, cuda_no):
         scheduler.step()
         print(f'EP{ep:03}STG{1 if ep < 90 else 2}: LossAvg: {losses.avg}')
         print('Saving invertible grayscale and restored color image...')
-        gray, color = util.tensor_to_img(
-            Y_grayscale.squeeze(0).cpu(), Y_restored.squeeze(0).cpu())
+        if use_gpu:
+            gray, color = util.tensor_to_img(
+                Y_grayscale.squeeze(0).cpu(), Y_restored.squeeze(0).cpu())
+        else:
+            gray, color = util.tensor_to_img(
+                Y_grayscale.squeeze(0), Y_restored.squeeze(0))
         gray.save(f'train_results/gray_ep{ep:03}.png')
         color.save(f'train_results/color_ep{ep:03}.png')
         print('Saving trained model...')
