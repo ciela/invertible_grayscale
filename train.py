@@ -32,7 +32,7 @@ def main(datadir, cuda_no):
         criterion = criterion.to(gpu)
 
     # start training
-    data_loader = data.DataLoader(Dataset(datadir))
+    data_loader = data.DataLoader(Dataset(datadir), shuffle=True, pin_memory=True)
     for ep in range(120):
         losses = util.AverageMeter()
         for p, X_color, T_gray in data_loader:
