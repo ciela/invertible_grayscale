@@ -54,7 +54,7 @@ def main(datadir, cuda_no):
         log.info(f'EP{ep:03}STG{1 if ep < 90 else 2}: LossAvg: {losses.avg}')
 
         # save current information
-        log.info(f'Saving invertible grayscale and restored color image of {str(p[0])}...')
+        log.info(f'Saving last invertible grayscale and restored color image of {p[0]}')
         if use_gpu:
             orig, gray, color = util.tensor_to_img(
                 X_color.squeeze(0).cpu(),
@@ -68,7 +68,7 @@ def main(datadir, cuda_no):
         orig.save(f'train_results/orig_ep{ep:03}.png')
         gray.save(f'train_results/gray_ep{ep:03}.png')
         color.save(f'train_results/color_ep{ep:03}.png')
-        log.info('Saving trained model...')
+        log.info('Saving trained model')
         state = {
             'epoch': ep + 1,
             'use_gpu': use_gpu,
