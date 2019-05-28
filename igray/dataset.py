@@ -1,5 +1,6 @@
 from typing import Tuple
 from pathlib import Path
+import random
 
 import PIL.Image as PILImage
 from PIL.Image import Image
@@ -36,8 +37,7 @@ class Dataset(data.Dataset):
         self.datadir = datadir
         self.paths = [str(p) for p in Path(self.datadir).glob('*')]
         if num_samples != -1:
-            # TODO: sample
-            pass
+            self.paths = random.sample(self.paths, num_samples)
 
     def __len__(self) -> int:
         return len(self.paths)
