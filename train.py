@@ -7,6 +7,7 @@ from torch.optim.lr_scheduler import LambdaLR
 import torch.utils.data as data
 import logzero
 from logzero import logger as log
+from tensorboardX import SummaryWriter
 
 from igray.dataset import Dataset
 from igray.model import InvertibleGrayscale
@@ -21,6 +22,7 @@ def main(datadir, cuda_no):
     datestr = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')
     logzero.logfile(f'igray_train_{datestr}.log', maxBytes=10e6, backupCount=3)
     log.info(f'Starting training of InvertibleGrayscale, {datestr}')
+    writer = SummaryWriter()
 
     # ready for training
     ig_net = InvertibleGrayscale()
@@ -52,22 +54,21 @@ def main(datadir, cuda_no):
             losses.update(loss)
         scheduler.step()
         log.info(f'EP{ep:03}STG{1 if ep < 90 else 2}: LossAvg: {losses.avg}')
+        writer.add_scalar('igray/train_loss', losses.avg, ep)
 
         # save current information
         log.info(f'Saving last invertible grayscale and restored color image of {p[0]}')
         if use_gpu:
-            orig, gray, color = util.tensor_to_img(
-                X_color.squeeze(0).cpu(),
-                Y_grayscale.squeeze(0).cpu(),
-                Y_restored.squeeze(0).cpu())
+            orig, gray, restored = X_color.squeeze(0).cpu(), Y_grayscale.squeeze(0).cpu(), Y_restored.squeeze(0).cpu()
         else:
-            orig, gray, color = util.tensor_to_img(
-                X_color.squeeze(0),
-                Y_grayscale.squeeze(0),
-                Y_restored.squeeze(0))
+            orig, gray, restored = X_color.squeeze(0), Y_grayscale.squeeze(0), Y_restored.squeeze(0)
+        writer.add_image('igray/img_orig', (orig + 1) / 2, ep)
+        writer.add_image('igray/img_gray', (gray + 1) / 2, ep)
+        writer.add_image('igray/img_restored', (restored + 1) / 2, ep)
+        orig, gray, restored = util.tensor_to_img(orig, gray, restored)
         orig.save(f'train_results/orig_ep{ep:03}.png')
         gray.save(f'train_results/gray_ep{ep:03}.png')
-        color.save(f'train_results/color_ep{ep:03}.png')
+        restored.save(f'train_results/restored_ep{ep:03}.png')
         log.info('Saving trained model')
         state = {
             'epoch': ep + 1,
