@@ -59,11 +59,11 @@ def main(datadir, cuda_no, num_samples):
             if ep == 0 and img_to_track is None:
                 img_to_track = p[0]
                 log.info(f'Set images to track to {img_to_track}')
-                track_progress(X_color, Y_grayscale, Y_restored, use_gpu, writer, ep)
+                track_progress(X_color, Y_grayscale, Y_restored, writer, ep)
             elif p[0] == img_to_track:
                 # save current information
                 log.info(f'Log generated images of {img_to_track}')
-                track_progress(X_color, Y_grayscale, Y_restored, use_gpu, writer, ep)
+                track_progress(X_color, Y_grayscale, Y_restored, writer, ep)
         scheduler.step()
         log.info(f'EP{ep:03}STG{1 if ep < 90 else 2}: LossAvg: {losses.avg}')
         writer.add_scalar('igray/train_loss', losses.avg, ep)
@@ -78,11 +78,8 @@ def main(datadir, cuda_no, num_samples):
     log.info('Finished training!')
 
 
-def track_progress(orig, gray, restored, use_gpu, writer, ep):
-    if use_gpu:
-        orig, gray, restored = orig.squeeze(0).cpu(), gray.squeeze(0).cpu(), restored.squeeze(0).cpu()
-    else:
-        orig, gray, restored = orig.squeeze(0), gray.squeeze(0), restored.squeeze(0)
+def track_progress(orig, gray, restored, writer, ep):
+    orig, gray, restored = orig.squeeze(0), gray.squeeze(0), restored.squeeze(0)
     writer.add_image('igray/img_orig', (orig + 1) / 2, ep)
     writer.add_image('igray/img_gray', (gray + 1) / 2, ep)
     writer.add_image('igray/img_restored', (restored + 1) / 2, ep)
