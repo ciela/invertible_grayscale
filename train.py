@@ -40,6 +40,7 @@ def main(datadir, cuda_no, num_samples):
     # start training
     data_loader = data.DataLoader(
         Dataset(datadir, num_samples=num_samples), shuffle=True, pin_memory=True)
+    img_to_track = None
     for ep in range(120):
         # calculate losses and perform backprop
         losses = util.AverageMeter()
@@ -54,23 +55,18 @@ def main(datadir, cuda_no, num_samples):
             loss.backward()
             optim.step()
             losses.update(loss)
+            # track learning progress
+            if ep == 0 and img_to_track is None:
+                img_to_track = p[0]
+                log.info(f'Set images to track to {img_to_track}')
+                track_progress(X_color, Y_grayscale, Y_restored, use_gpu, writer, ep)
+            elif p[0] == img_to_track:
+                # save current information
+                log.info(f'Log generated images of {img_to_track}')
+                track_progress(X_color, Y_grayscale, Y_restored, use_gpu, writer, ep)
         scheduler.step()
         log.info(f'EP{ep:03}STG{1 if ep < 90 else 2}: LossAvg: {losses.avg}')
         writer.add_scalar('igray/train_loss', losses.avg, ep)
-
-        # save current information
-        log.info(f'Saving last invertible grayscale and restored color image of {p[0]}')
-        if use_gpu:
-            orig, gray, restored = X_color.squeeze(0).cpu(), Y_grayscale.squeeze(0).cpu(), Y_restored.squeeze(0).cpu()
-        else:
-            orig, gray, restored = X_color.squeeze(0), Y_grayscale.squeeze(0), Y_restored.squeeze(0)
-        writer.add_image('igray/img_orig', (orig + 1) / 2, ep)
-        writer.add_image('igray/img_gray', (gray + 1) / 2, ep)
-        writer.add_image('igray/img_restored', (restored + 1) / 2, ep)
-        orig, gray, restored = util.tensor_to_img(orig, gray, restored)
-        orig.save(f'train_results/orig_ep{ep:03}.png')
-        gray.save(f'train_results/gray_ep{ep:03}.png')
-        restored.save(f'train_results/restored_ep{ep:03}.png')
         log.info('Saving trained model')
         state = {
             'epoch': ep + 1,
@@ -80,6 +76,16 @@ def main(datadir, cuda_no, num_samples):
         }
         util.save_checkpoint(state, False, datestr)
     log.info('Finished training!')
+
+
+def track_progress(orig, gray, restored, use_gpu, writer, ep):
+    if use_gpu:
+        orig, gray, restored = orig.squeeze(0).cpu(), gray.squeeze(0).cpu(), restored.squeeze(0).cpu()
+    else:
+        orig, gray, restored = orig.squeeze(0), gray.squeeze(0), restored.squeeze(0)
+    writer.add_image('igray/img_orig', (orig + 1) / 2, ep)
+    writer.add_image('igray/img_gray', (gray + 1) / 2, ep)
+    writer.add_image('igray/img_restored', (restored + 1) / 2, ep)
 
 
 if __name__ == "__main__":
