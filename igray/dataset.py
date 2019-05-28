@@ -38,6 +38,7 @@ class Dataset(data.Dataset):
         self.paths = [str(p) for p in Path(self.datadir).glob('*')]
         if num_samples != -1:
             self.paths = random.sample(self.paths, num_samples)
+            assert len(self.paths) == num_samples
 
     def __len__(self) -> int:
         return len(self.paths)

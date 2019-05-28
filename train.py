@@ -18,7 +18,8 @@ from igray.loss import Loss
 @click.command()
 @click.option('-d', '--datadir', type=str)
 @click.option('-c', '--cuda_no', type=int, default=-1)
-def main(datadir, cuda_no):
+@click.option('-n', '--num_samples', type=int, default=-1)
+def main(datadir, cuda_no, num_samples):
     datestr = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')
     logzero.logfile(f'igray_train_{datestr}.log', maxBytes=10e6, backupCount=3)
     log.info(f'Starting training of InvertibleGrayscale, {datestr}')
@@ -37,7 +38,8 @@ def main(datadir, cuda_no):
         criterion = criterion.to(gpu)
 
     # start training
-    data_loader = data.DataLoader(Dataset(datadir), shuffle=True, pin_memory=True)
+    data_loader = data.DataLoader(
+        Dataset(datadir, num_samples=num_samples), shuffle=True, pin_memory=True)
     for ep in range(120):
         # calculate losses and perform backprop
         losses = util.AverageMeter()
