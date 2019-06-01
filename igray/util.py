@@ -53,3 +53,12 @@ def save_checkpoint(state: dict, is_best: bool, datestr: str):
     if is_best:
         shutil.copyfile(filename, 'iqcrnet_best_' +
                         datestr + '.pth.tar')
+
+
+def load_checkpoint(filepath: str, cuda_no: int = -1) -> dict:
+    use_gpu = torch.cuda.is_available() and cuda_no >= 0
+    if use_gpu:
+        state = torch.load(filepath, map_location=f'cuda:{cuda_no}')
+    else:
+        state = torch.load(filepath, map_location='cpu')
+    return state
