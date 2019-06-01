@@ -19,34 +19,43 @@ from igray.loss import Loss
 @click.option('-d', '--datadir', type=str)
 @click.option('-c', '--cuda_no', type=int, default=-1)
 @click.option('-n', '--num_samples', type=int, default=-1)
-@click.option('-f', '--chkpt_file', type=str, default=None)
 @click.option('-m', '--max_epoch', type=int, default=120)
-def main(datadir, cuda_no, num_samples, chkpt_file, max_epoch):
+@click.option('-f', '--chkpt_file', type=str, default=None)
+def main(datadir, cuda_no, num_samples, max_epoch, chkpt_file):
     datestr = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')
     logzero.logfile(f'igray_train_{datestr}.log', maxBytes=10e6, backupCount=3)
     log.info(f'Starting training of InvertibleGrayscale, {datestr}')
-    writer = SummaryWriter()
-
-    # ready for training
-    ig_net = InvertibleGrayscale()
-    if chkpt_file:
-        # TODO: load checkpoint file if specified
-        pass
-    optim = Adam(ig_net.parameters(), lr=0.0002)  # to lr 0.000002
-    scheduler = LambdaLR(optim, lr_lambda=lambda ep: (0.01 ** (1/max_epoch)) ** ep)
-    criterion = Loss()
     use_gpu = torch.cuda.is_available() and cuda_no >= 0
     if use_gpu:
         log.info(f'Use GPU No.{cuda_no}')
+    writer = SummaryWriter()
+    state = None
+    if chkpt_file:
+        log.info(f'Resume training from checkpoint file {chkpt_file}')
+        state = util.load_checkpoint(chkpt_file, cuda_no=cuda_no)
+
+    # ready for training
+    ig_net = InvertibleGrayscale()
+    if state:
+        ig_net.load_state_dict(state['state_dict'])
+    if use_gpu:
         gpu = torch.device('cuda', cuda_no)
         ig_net = ig_net.to(gpu)
+    optim = Adam(ig_net.parameters(), lr=0.0002)  # to lr 0.000002
+    scheduler = None
+    if state:
+        optim.load_state_dict(state['optimizer'])
+    else:
+        scheduler = LambdaLR(optim, lr_lambda=lambda ep: (0.01 ** (1/max_epoch)) ** ep)
+    criterion = Loss()
+    if use_gpu:
         criterion = criterion.to(gpu)
 
     # start training
     data_loader = data.DataLoader(
         Dataset(datadir, num_samples=num_samples), shuffle=True, pin_memory=True)
     img_to_track = None
-    for ep in range(120):
+    for ep in range(state['epoch'], max_epoch) if state else range(max_epoch):
         # calculate losses and perform backprop
         losses = util.AverageMeter()
         for p, X_color, T_gray in data_loader:
@@ -61,7 +70,7 @@ def main(datadir, cuda_no, num_samples, chkpt_file, max_epoch):
             optim.step()
             losses.update(loss)
             # track learning progress
-            if ep == 0 and img_to_track is None:
+            if img_to_track is None:
                 img_to_track = p[0]
                 log.info(f'Set images to track to {img_to_track}')
                 track_progress(X_color, Y_grayscale, Y_restored, writer, ep)
@@ -69,7 +78,8 @@ def main(datadir, cuda_no, num_samples, chkpt_file, max_epoch):
                 # save current information
                 log.info(f'Log generated images of {img_to_track}')
                 track_progress(X_color, Y_grayscale, Y_restored, writer, ep)
-        scheduler.step()
+        if scheduler:
+            scheduler.step()
         log.info(f'EP{ep:03}STG{1 if ep < 90 else 2}: LossAvg: {losses.avg}')
         writer.add_scalar('igray/train_loss', losses.avg, ep)
         log.info('Saving trained model')
