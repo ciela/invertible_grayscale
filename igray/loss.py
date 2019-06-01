@@ -31,11 +31,10 @@ class Loss(nn.Module):
         weights = self.w1 if stage == 1 else self.w2
         invertibility = 3 * self.invertibility(X_orig_color, Y_restored)
         grayscale_conformity = weights[0] * self.grayscale_conformity(T_orig_gray, Y_grayscale)
-        if stage == 1:
-            full_loss = invertibility + grayscale_conformity
-        else:
+        full_loss = invertibility + grayscale_conformity
+        if stage == 2:
             quantization = weights[1] * self.quantization(Y_grayscale)
-            full_loss = invertibility + grayscale_conformity + quantization
+            full_loss += quantization
         return full_loss
 
     def invertibility(self, X_orig_color: torch.Tensor, Y_restored: torch.Tensor) -> torch.Tensor:

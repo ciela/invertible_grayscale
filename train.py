@@ -19,7 +19,9 @@ from igray.loss import Loss
 @click.option('-d', '--datadir', type=str)
 @click.option('-c', '--cuda_no', type=int, default=-1)
 @click.option('-n', '--num_samples', type=int, default=-1)
-def main(datadir, cuda_no, num_samples):
+@click.option('-f', '--chkpt_file', type=str, default=None)
+@click.option('-m', '--max_epoch', type=int, default=120)
+def main(datadir, cuda_no, num_samples, chkpt_file, max_epoch):
     datestr = dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')
     logzero.logfile(f'igray_train_{datestr}.log', maxBytes=10e6, backupCount=3)
     log.info(f'Starting training of InvertibleGrayscale, {datestr}')
@@ -27,8 +29,11 @@ def main(datadir, cuda_no, num_samples):
 
     # ready for training
     ig_net = InvertibleGrayscale()
+    if chkpt_file:
+        # TODO: load checkpoint file if specified
+        pass
     optim = Adam(ig_net.parameters(), lr=0.0002)  # to lr 0.000002
-    scheduler = LambdaLR(optim, lr_lambda=lambda ep: 0.9623506263980885 ** ep)  # 0.01 ** (1/120)
+    scheduler = LambdaLR(optim, lr_lambda=lambda ep: (0.01 ** (1/max_epoch)) ** ep)
     criterion = Loss()
     use_gpu = torch.cuda.is_available() and cuda_no >= 0
     if use_gpu:
