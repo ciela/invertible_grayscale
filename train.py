@@ -31,7 +31,7 @@ def main(datadir, cuda_no, num_samples, max_epoch, chkpt_file):
     writer = SummaryWriter()
     state = None
     if chkpt_file:
-        log.info(f'Resume training from checkpoint file {chkpt_file}')
+        log.info(f'Resuming training from checkpoint file {chkpt_file}')
         state = util.load_checkpoint(chkpt_file, cuda_no=cuda_no)
 
     # ready for training
