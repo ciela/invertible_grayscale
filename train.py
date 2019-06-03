@@ -42,11 +42,9 @@ def main(datadir, cuda_no, num_samples, max_epoch, chkpt_file):
         gpu = torch.device('cuda', cuda_no)
         ig_net = ig_net.to(gpu)
     optim = Adam(ig_net.parameters(), lr=0.0002)  # to lr 0.000002
-    scheduler = None
     if state:
         optim.load_state_dict(state['optimizer'])
-    else:
-        scheduler = LambdaLR(optim, lr_lambda=lambda ep: (0.01 ** (1/max_epoch)) ** ep)
+    scheduler = LambdaLR(optim, lr_lambda=lambda ep: (0.01 ** (1/max_epoch)) ** ep)
     criterion = Loss()
     if use_gpu:
         criterion = criterion.to(gpu)
@@ -78,7 +76,8 @@ def main(datadir, cuda_no, num_samples, max_epoch, chkpt_file):
                 # save current information
                 log.info(f'Log generated images of {img_to_track}')
                 track_progress(X_color, Y_grayscale, Y_restored, writer, ep)
-        if scheduler:
+        if optim.param_groups[0]['lr'] > 0.000002:
+            log.info(f'Decay learning rate: {optim.param_groups[0]["lr"]}')
             scheduler.step()
         log.info(f'EP{ep:03}STG{1 if ep < 90 else 2}: LossAvg: {losses.avg}')
         writer.add_scalar('igray/train_loss', losses.avg, ep)
