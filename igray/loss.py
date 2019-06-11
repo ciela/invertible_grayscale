@@ -24,21 +24,19 @@ class Loss(nn.Module):
     def forward(self, X_orig_color: torch.Tensor, T_orig_gray: torch.Tensor,
         Y_grayscale: torch.Tensor, Y_restored: torch.Tensor, stage: int = 1) -> torch.Tensor:
         invertibility = 3 * self.invertibility(X_orig_color, Y_restored)
-        grayscale_conformity = self.grayscale_conformity(T_orig_gray, Y_grayscale)
-        full_loss = invertibility + grayscale_conformity
-        if stage == 2:
-            quantization = 10 * self.quantization(Y_grayscale)
-            full_loss += quantization
+        grayscale_conformity = self.grayscale_conformity(T_orig_gray, Y_grayscale, stage)
+        quantization = 10 * self.quantization(Y_grayscale)
+        full_loss = invertibility + grayscale_conformity + quantization
         return full_loss
 
     def invertibility(self, X_orig_color: torch.Tensor, Y_restored: torch.Tensor) -> torch.Tensor:
         return F.mse_loss(X_orig_color, Y_restored)
 
-    def grayscale_conformity(self, T_orig_gray: torch.Tensor, Y_grayscale: torch.Tensor) -> torch.Tensor:
+    def grayscale_conformity(self, T_orig_gray: torch.Tensor, Y_grayscale: torch.Tensor, stage: int = 1) -> torch.Tensor:
         lightness = self.gc_lightness(T_orig_gray, Y_grayscale)
         contrast = self.gc_contrast(T_orig_gray, Y_grayscale)
         local_structure = self.gc_local_structure(T_orig_gray, Y_grayscale)
-        return lightness + 1e-7 * contrast + 0.5 * local_structure
+        return lightness + 1e-7 * contrast + (0.5 if stage == 1 else 0.1) * local_structure
 
     def gc_lightness(self, T_orig_gray: torch.Tensor, Y_grayscale: torch.Tensor) -> torch.Tensor:
         # abs range is [0, 2]
