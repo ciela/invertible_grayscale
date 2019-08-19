@@ -1,0 +1,39 @@
+<html>
+  <head>
+      <title>My ONNX.js</title>
+  </head>
+  <body>
+    <!-- Load ONNX.js -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>
+    <script src="ndarray-browser-min.js"></script>
+    <!-- Code that consume ONNX.js -->
+    <script>
+      // create a session
+      //const backendHint = 'cpu'
+      const backendHint = 'webgl'
+      //const backendHint = 'wasm'
+      const myOnnxSession = new onnx.InferenceSession({backendHint: backendHint});
+      // load the ONNX model file
+      myOnnxSession.loadModel("./igray_decoder.onnx").then(() => {
+        console.log('loaded!!!!')
+        // generate model input
+        dummy = Array.from({length: 256 * 256}, () => Math.floor(Math.random() * 256))
+        dummy = ndarray(new Float32Array(dummy), [1, 1, 256, 256]);
+        // Normalize 0-255 to (-1)-1
+        ndarray.ops.divseq(dummy, 128.0);
+        ndarray.ops.subseq(dummy, 1.0);
+        const inputTensor = new onnx.Tensor(dummy.data, 'float32', [1, 1, 256, 256])
+	const startTime = performance.now();
+        console.log('Executing inference', backendHint)
+        // execute the model
+        myOnnxSession.run([inputTensor]).then(output => {
+          // consume the output
+	  const endTime = performance.now();
+          console.log('Finished inference, elapsed: ', endTime - startTime)
+          const outputTensor = output.values().next().value;
+          console.log(`model output tensor: ${outputTensor.data}.`);
+        });
+      });
+    </script>
+  </body>
+</html>
